@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Configuration file for storing the API key
+CONFIG_FILE="$HOME/.openai_config"
+
+# Default prompt to set the context
+DEFAULT_PROMPT="You are a UNIX and Mac terminal expert. Answer the following question only with the right command and nothing else."
+
+# Function to configure the API key
+configure_api_key() {
+  echo "Please enter your OpenAI API key:"
+  read -s api_key
+  echo "api_key=$api_key" > $CONFIG_FILE
+  echo "API key saved to $CONFIG_FILE"
+}
+
+# Function to load the API key from the config file
+load_api_key() {
+  if [ -f "$CONFIG_FILE" ]; then
+    source $CONFIG_FILE
+  else
+    echo "API key not configured. Please run 'ask --configure' to set it up."
+    exit 1
+  fi
+}
+
+# Function to send the prompt to OpenAI and get the response
+send_request() {
+  local user_prompt="$1"
+  local prompt="${DEFAULT_PROMPT} ${user_prompt}"
+
+
+  response=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
+    -H "Authorization: Bearer $api_key" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "model": "gpt-4-turbo",
+      "messages": [{"role": "system", "content": "'"${DEFAULT_PROMPT}"'"}, {"role": "user", "content": "'"${user_prompt}"'"}],
+      "max_tokens": 4000,
+      "temperature": 0.2
+    }')
+
+
+  # Extract the content field from the JSON response using jq
+  content=$(echo "$response" | jq -r '.choices[0].message.content' 2>/dev/null)
+  if [ $? -ne 0 ] || [ -z "$content" ]; then
+    echo "jq failed, falling back to awk" # Debugging information
+    # Fallback to using awk if jq fails
+    content=$(echo "$response" | awk -v RS=',"' -F: '/content/ {print $2}' | sed 's/^"//;s/"$//;s/\\n/\n/g')
+  fi
+
+  # Remove the starting and ending code block markers (```bash and ```)
+  command=$(echo "$content" | sed 's/^```bash//;s/```$//')
+
+  echo "${command}"
+}
+
+# Check for the configure option
+if [ "$1" == "--configure" ]; then
+  configure_api_key
+  exit 0
+fi
+
+# Load the API key
+load_api_key
+
+# Combine all arguments into a single user prompt string
+user_prompt="$*"
+
+# Send the request and print the response
+send_request "$user_prompt"
