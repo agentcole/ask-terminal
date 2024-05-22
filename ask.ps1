@@ -1,5 +1,5 @@
 # Configuration file for storing the API key
-$CONFIG_FILE = "$HOME\.openai_config"
+$CONFIG_FILE = "$HOME\.openai_api_key"
 
 # Default prompt to set the context
 $DEFAULT_PROMPT = "You are a Windows Powershell expert. Answer the following question only with the right command and nothing else."
@@ -7,7 +7,7 @@ $DEFAULT_PROMPT = "You are a Windows Powershell expert. Answer the following que
 # Function to configure the API key
 function Configure-ApiKey {
     Write-Host "Please enter your OpenAI API key:"
-    $api_key = Read-Host -AsSecureString | ConvertFrom-SecureString
+    $api_key = Read-Host -AsSecureString | ConvertFrom-SecureString -AsPlainText
     Set-Content -Path $CONFIG_FILE -Value $api_key
     Write-Host "API key saved to $CONFIG_FILE"
 }
@@ -15,7 +15,7 @@ function Configure-ApiKey {
 # Function to load the API key from the config file
 function Load-ApiKey {
     if (Test-Path $CONFIG_FILE) {
-        $api_key = Get-Content -Path $CONFIG_FILE | ConvertTo-SecureString
+        $global:api_key = Get-Content -Path $CONFIG_FILE
     } else {
         Write-Host "API key not configured. Please run 'ask --configure' to set it up."
         exit 1
@@ -29,12 +29,11 @@ function Send-Request {
     )
 
     $prompt = "$DEFAULT_PROMPT $user_prompt"
-   
 
     $response = Invoke-RestMethod -Method Post -Uri "https://api.openai.com/v1/chat/completions" `
         -Headers @{"Authorization"="Bearer $api_key"; "Content-Type"="application/json"} `
-        -Body @{
-            "model" = "gpt-3.5-turbo"
+        -Body (@{
+            "model" = "gpt-4-turbo"
             "messages" = @(
                 @{
                     "role" = "system"
@@ -45,24 +44,20 @@ function Send-Request {
                     "content" = $user_prompt
                 }
             )
-            "max_tokens" = 100
-            "temperature" = 0.5
-        } | ConvertTo-Json
+            "max_tokens" = 4000
+            "temperature" = 0.2
+        } | ConvertTo-Json)
 
-   
 
     # Extract the content field from the JSON response using jq
     try {
-        $content = $response | ConvertFrom-Json | Select-Object -ExpandProperty choices | Select-Object -ExpandProperty message | Select-Object -ExpandProperty content
+        $content = $response.choices[0].message.content
     } catch {
-       
-        $content = $response -replace '.*"content":"([^"]*)".*', '$1' -replace '\\n', "`n" -replace '\\', ''
+        exit 1
     }
-   
 
     # Remove the starting and ending code block markers (```bash and ```)
     $command = $content -replace '^```bash', '' -replace '```$', ''
-   
 
     Write-Output $command
 }
