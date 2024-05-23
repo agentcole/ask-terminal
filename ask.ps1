@@ -8,7 +8,7 @@ $DEFAULT_PROMPT = "You are a Windows Powershell expert. Answer the following que
 function Configure-ApiKey {
     Write-Host "Please enter your OpenAI API key:"
     $api_key = Read-Host -AsSecureString
-    $encrypted_api_key = $api_key | ConvertFrom-SecureString -SecureString
+    $encrypted_api_key = $api_key | ConvertFrom-SecureString
     Set-Content -Path $CONFIG_FILE -Value $encrypted_api_key
     Write-Host "API key saved to $CONFIG_FILE"
 }
