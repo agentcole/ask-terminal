@@ -1,6 +1,6 @@
 # ask
 
-`ask` is a command-line tool that interacts with OpenAI's GPT-3.5-turbo model to provide UNIX and Mac terminal commands based on user prompts. This tool is designed to be easily configurable and accessible from anywhere in your terminal.
+`ask` is a command-line tool that interacts with OpenAI's GPT-3.5-turbo model to provide UNIX, Mac terminal and Powershell commands based on user prompts. This tool is designed to be easily configurable and accessible from anywhere in your terminal.
 
 ## Features
 
@@ -11,12 +11,16 @@
 
 ## Prerequisites
 
+### Linux/Mac
 - `curl`: Command-line tool for transferring data with URLs.
 - `jq` (optional): Command-line JSON processor. Install using Homebrew:
 
   ```sh
   brew install jq
   ```
+### Windows
+- Powershell 7 is the minimum required version
+
 
 ## Installation
 
